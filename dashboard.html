@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>证书管理系统 - 后台管理</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- DataTables -->
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.tailwindcss.min.css" rel="stylesheet">
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.tailwindcss.min.js"></script>
+    <!-- jQuery (for DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <!-- SheetJS for Excel file processing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af',
+                        secondary: '#3b82f6',
+                        accent: '#60a5fa',
+                        light: '#dbeafe',
+                        dark: '#1e3a8a'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .sidebar-active {
+                @apply bg-primary text-white;
+            }
+            .sidebar-icon {
+                @apply mr-3 text-lg;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-dark text-white font-medium py-2 px-4 rounded-lg transition-colors duration-300;
+            }
+            .btn-secondary {
+                @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-300;
+            }
+            .btn-success {
+                @apply bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-300;
+            }
+            .btn-danger {
+                @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-300;
+            }
+            .btn-info {
+                @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-300;
+            }
+            .form-input {
+                @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+            }
+            .form-label {
+                @apply block text-gray-700 font-medium mb-2;
+            }
+            .form-group {
+                @apply mb-4;
+            }
+            .card {
+                @apply bg-white rounded-xl shadow-md p-6;
+            }
+            .badge {
+                @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+            }
+            .badge-blue {
+                @apply bg-blue-100 text-blue-800;
+            }
+            .badge-green {
+                @apply bg-green-100 text-green-800;
+            }
+            .badge-yellow {
+                @apply bg-yellow-100 text-yellow-800;
+            }
+            .badge-red {
+                @apply bg-red-100 text-red-800;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <button id="sidebarToggle" class="mr-4 text-gray-600 hover:text-primary">
+                    <i class="fa fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-xl font-bold text-primary">证书管理系统</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button id="notificationBtn" class="text-gray-600 hover:text-primary">
+                        <i class="fa fa-bell text-xl"></i>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                </div>
+                <div class="relative">
+                    <button id="userMenuBtn" class="flex items-center space-x-2 text-gray-600 hover:text-primary">
+                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
+                            <i class="fa fa-user"></i>
+                        </div>
+                        <span>管理员</span>
+                        <i class="fa fa-chevron-down text-xs"></i>
+                    </button>
+                    <div id="userMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-10 hidden">
+                        <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                            <i class="fa fa-user-circle mr-2"></i> 个人资料
+                        </a>
+                        <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                            <i class="fa fa-cog mr-2"></i> 系统设置
+                        </a>
+                        <hr class="my-1">
+                        <a href="#" id="logoutBtn" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                            <i class="fa fa-sign-out mr-2"></i> 退出登录
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1">
+        <!-- 侧边栏 -->
+        <aside id="sidebar" class="w-64 bg-white shadow-md flex-shrink-0">
+            <nav class="p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg sidebar-active">
+                            <i class="fa fa-tachometer sidebar-icon"></i>
+                            <span>仪表盘</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <i class="fa fa-certificate sidebar-icon"></i>
+                            <span>证书管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <i class="fa fa-users sidebar-icon"></i>
+                            <span>用户管理</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <i class="fa fa-bar-chart sidebar-icon"></i>
+                            <span>统计分析</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <i class="fa fa-cog sidebar-icon"></i>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <i class="fa fa-question-circle sidebar-icon"></i>
+                            <span>帮助中心</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            <div class="mb-6 flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">证书管理</h2>
+                <div class="flex space-x-3">
+                    <button id="importCertificatesBtn" class="btn-secondary">
+                        <i class="fa fa-upload mr-2"></i> 批量导入
+                    </button>
+                    <button id="exportCertificatesBtn" class="btn-secondary">
+                        <i class="fa fa-download mr-2"></i> 批量导出
+                    </button>
+                    <button id="addCertificateBtn" class="btn-primary">
+                        <i class="fa fa-plus mr-2"></i> 添加证书
+                    </button>
+                </div>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="card">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                            <i class="fa fa-certificate text-blue-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">总证书数</p>
+                            <p class="text-2xl font-bold text-gray-800" id="totalCertificates">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mr-4">
+                            <i class="fa fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">有效证书</p>
+                            <p class="text-2xl font-bold text-gray-800" id="validCertificates">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mr-4">
+                            <i class="fa fa-clock-o text-yellow-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">即将过期</p>
+                            <p class="text-2xl font-bold text-gray-800" id="expiringCertificates">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 证书列表 -->
+            <div class="card">
+                <div class="mb-4 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-800">证书列表</h3>
+                    <div class="flex space-x-2">
+                        <div class="relative">
+                            <input type="text" id="searchInput" placeholder="搜索证书..." 
+                                class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <i class="fa fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        <button id="filterBtn" class="btn-secondary">
+                            <i class="fa fa-filter mr-1"></i> 筛选
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table id="certificateTable" class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">证书编号</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">证书类型</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">证书名称</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">发证日期</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">有效期至</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="certificateTableBody">
+                            <!-- 证书数据将通过JavaScript动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加/编辑证书模态框 -->
+    <div id="certificateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-800" id="modalTitle">添加证书</h3>
+                    <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="certificateForm" class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label for="certName" class="form-label">姓名</label>
+                        <input type="text" id="certName" name="name" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="certIdNumber" class="form-label">身份证号</label>
+                        <input type="text" id="certIdNumber" name="idNumber" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="certType" class="form-label">证书类型</label>
+                        <select id="certType" name="type" class="form-input" required>
+                            <option value="">请选择证书类型</option>
+                            <option value="职业资格证书">职业资格证书</option>
+                            <option value="培训证书">培训证书</option>
+                            <option value="学历证书">学历证书</option>
+                            <option value="技能证书">技能证书</option>
+                            <option value="其他证书">其他证书</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="certTitle" class="form-label">证书名称</label>
+                        <input type="text" id="certTitle" name="title" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="certIssueDate" class="form-label">发证日期</label>
+                        <input type="date" id="certIssueDate" name="issueDate" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="certValidUntil" class="form-label">有效期至</label>
+                        <input type="date" id="certValidUntil" name="validUntil" class="form-input">
+                        <div class="mt-2">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="permanentValid" class="form-checkbox h-4 w-4 text-primary">
+                                <span class="ml-2 text-gray-700">永久有效</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="certIssuingAuthority" class="form-label">发证机关</label>
+                        <input type="text" id="certIssuingAuthority" name="issuingAuthority" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="certCertificateNumber" class="form-label">证书编号</label>
+                        <input type="text" id="certCertificateNumber" name="certificateNumber" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group md:col-span-2">
+                        <label for="certDescription" class="form-label">证书说明</label>
+                        <textarea id="certDescription" name="description" rows="3" class="form-input"></textarea>
+                    </div>
+                    
+                    <div class="form-group md:col-span-2">
+                        <label class="form-label">证书图片</label>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="md:col-span-1">
+                                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors" id="uploadImageBtn">
+                                    <input type="file" id="certImageUpload" accept="image/*" class="hidden">
+                                    <i class="fa fa-cloud-upload text-3xl text-gray-400 mb-2"></i>
+                                    <p class="text-gray-700 text-sm">上传自定义证书图片</p>
+                                    <p class="text-gray-500 text-xs mt-1">支持 JPG, PNG 格式</p>
+                                </div>
+                            </div>
+                            <div class="md:col-span-3">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="imageUrl" value="https://p11-doubao-search-sign.byteimg.com/tos-cn-i-xv4ileqgde/9f22e778402b46229e344b8051971f3a~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=GiQZbFSwW90wVQroe%2BFqWe1%2BFqWe1%2B3Js%3D" class="sr-only" checked>
+                                        <div class="border-2 border-gray-200 rounded-lg p-2 hover:border-primary transition-colors">
+                                            <img src="https://p11-doubao-search-sign.byteimg.com/tos-cn-i-xv4ileqgde/9f22e778402b46229e344b8051971f3a~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=GiQZbFSwW90wVQroe%2BFqWe1%2BFqWe1%2B3Js%3D" alt="证书模板1" class="w-full h-24 object-cover rounded">
+                                            <p class="text-center mt-2 text-sm text-gray-700">模板1</p>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="imageUrl" value="https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1905755140538105862~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=EZwrQ1q82WfqNeYGFpWbb%2BEd0C8%3D" class="sr-only">
+                                        <div class="border-2 border-gray-200 rounded-lg p-2 hover:border-primary transition-colors">
+                                            <img src="https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1905755140538105862~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=EZwrQ1q82WfqNeYGFpWbb%2BEd0C8%3D" alt="证书模板2" class="w-full h-24 object-cover rounded">
+                                            <p class="text-center mt-2 text-sm text-gray-700">模板2</p>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="imageUrl" value="https://p3-doubao-search-sign.byteimg.com/labis/c784c074bf7db0f49eadcd00f5d4f7c8~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=3xh3Y9piejAlYZVV0ZlvaNP022Q%3D" class="sr-only">
+                                        <div class="border-2 border-gray-200 rounded-lg p-2 hover:border-primary transition-colors">
+                                            <img src="https://p3-doubao-search-sign.byteimg.com/labis/c784c074bf7db0f49eadcd00f5d4f7c8~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=3xh3Y9piejAlYZVV0ZlvaNP022Q%3D" alt="证书模板3" class="w-full h-24 object-cover rounded">
+                                            <p class="text-center mt-2 text-sm text-gray-700">模板3</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="customImagePreview" class="mt-4 hidden">
+                            <div class="border border-gray-300 rounded-lg p-2 inline-block">
+                                <img id="previewImage" src="" alt="自定义证书图片预览" class="h-32 object-contain rounded">
+                                <button type="button" id="removeCustomImageBtn" class="mt-2 text-sm text-red-600 hover:text-red-800">
+                                    <i class="fa fa-times mr-1"></i> 移除图片
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" id="cancelBtn" class="btn-secondary">取消</button>
+                    <button type="submit" class="btn-primary">保存证书</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 确认删除模态框 -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">确认删除</h3>
+            </div>
+            
+            <div class="p-6">
+                <p class="text-gray-700 mb-4">您确定要删除此证书吗？此操作无法撤销。</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="cancelDeleteBtn" class="btn-secondary">取消</button>
+                    <button id="confirmDeleteBtn" class="btn-danger">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 批量导入模态框 -->
+    <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-800">批量导入证书</h3>
+                    <button id="closeImportModalBtn" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">导入说明</h4>
+                    <ol class="list-decimal list-inside text-gray-700 space-y-2">
+                        <li>请下载<a href="#" id="downloadTemplateBtn" class="text-primary hover:underline">导入模板</a>，按照模板格式填写证书信息</li>
+                        <li>支持的文件格式：Excel (.xlsx, .xls)</li>
+                        <li>请确保填写的信息准确无误，特别是身份证号和证书编号</li>
+                        <li>导入后将覆盖相同证书编号的证书信息</li>
+                    </ol>
+                </div>
+                
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+                    <label for="fileInput" class="cursor-pointer">
+                        <div class="mb-4">
+                            <i class="fa fa-cloud-upload text-4xl text-gray-400"></i>
+                        </div>
+                        <p class="text-gray-700 mb-2">点击或拖拽文件到此处上传</p>
+                        <p class="text-gray-500 text-sm">支持 .xlsx, .xls 格式</p>
+                    </label>
+                </div>
+                
+                <div id="importPreview" class="mt-6 hidden">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-2">导入预览</h4>
+                    <div class="overflow-x-auto max-h-60 border border-gray-200 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200" id="previewTable">
+                            <!-- 预览表格内容将通过JavaScript动态填充 -->
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button id="cancelImportBtn" class="btn-secondary">取消</button>
+                    <button id="confirmImportBtn" class="btn-primary" disabled>确认导入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知提示 -->
+    <div id="notification" class="fixed top-4 right-4 bg-white rounded-lg shadow-lg p-4 max-w-sm transform translate-x-full transition-transform duration-300 z-50">
+        <div class="flex items-start">
+            <div id="notificationIcon" class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3">
+                <!-- 图标将通过JavaScript动态设置 -->
+            </div>
+            <div class="flex-1">
+                <h4 id="notificationTitle" class="text-sm font-medium text-gray-800"></h4>
+                <p id="notificationMessage" class="text-sm text-gray-600 mt-1"></p>
+            </div>
+            <button id="closeNotificationBtn" class="text-gray-400 hover:text-gray-600 ml-4">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 从localStorage加载证书数据，如果没有则使用默认数据
+        let certificates = JSON.parse(localStorage.getItem('certificates')) || [
+            {
+                id: 1,
+                name: "张三",
+                idNumber: "110101199001011234",
+                type: "职业资格证书",
+                title: "高级软件工程师",
+                issueDate: "2023-06-15",
+                validUntil: "2028-06-14",
+                issuingAuthority: "国家人力资源和社会保障部",
+                certificateNumber: "CSSE20230615001",
+                verificationCode: "VC123456789",
+                description: "该证书持有者已通过高级软件工程师职业资格考试，具备相应的专业技能和知识。",
+                imageUrl: "https://p11-doubao-search-sign.byteimg.com/tos-cn-i-xv4ileqgde/9f22e778402b46229e344b8051971f3a~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=GiQZbFSwW90wVQroe%2BFqWe1%2BFqWe1%2B3Js%3D"
+            },
+            {
+                id: 2,
+                name: "李四",
+                idNumber: "110101199002022345",
+                type: "培训证书",
+                title: "数据分析专业培训",
+                issueDate: "2023-09-20",
+                validUntil: "2025-09-19",
+                issuingAuthority: "中国数据科学研究院",
+                certificateNumber: "DAT20230920002",
+                verificationCode: "VC987654321",
+                description: "该证书持有者已完成数据分析专业培训课程，并通过了相关考核。",
+                imageUrl: "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1905755140538105862~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=EZwrQ1q82WfqNeYGFpWbb%2BEd0C8%3D"
+            },
+            {
+                id: 3,
+                name: "王五",
+                idNumber: "110101199003033456",
+                type: "学历证书",
+                title: "计算机科学与技术学士学位",
+                issueDate: "2020-07-01",
+                validUntil: "永久有效",
+                issuingAuthority: "电子科技大学",
+                certificateNumber: "BAC20200701003",
+                verificationCode: "VC456789123",
+                description: "该证书持有者已完成计算机科学与技术专业本科阶段学习，成绩合格，授予学士学位。",
+                imageUrl: "https://p3-doubao-search-sign.byteimg.com/labis/c784c074bf7db0f49eadcd00f5d4f7c8~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=3xh3Y9piejAlYZVV0ZlvaNP022Q%3D"
+            }
+        ];
+
+        // 保存证书数据到localStorage
+        function saveCertificates() {
+            localStorage.setItem('certificates', JSON.stringify(certificates));
+            // 同时更新前端查询系统的数据
+            localStorage.setItem('certificateDatabase', JSON.stringify(certificates));
+        }
+
+        // 生成唯一ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+
+        // 生成随机验证码
+        function generateVerificationCode() {
+            return 'VC' + Math.random().toString().substr(2, 9).toUpperCase();
+        }
+        
+        // 下载证书模板
+        function downloadTemplate() {
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            
+            // 创建表头
+            const headers = [
+                '姓名', '身份证号', '证书类型', '证书名称', '发证日期', 
+                '有效期至', '发证机关', '证书编号', '证书说明', '证书模板'
+            ];
+            
+            // 创建示例数据
+            const examples = [
+                ['张三', '110101199001011234', '职业资格证书', '高级软件工程师', '2023-06-15', 
+                 '2028-06-14', '国家人力资源和社会保障部', 'CSSE20230615001', 
+                 '该证书持有者已通过高级软件工程师职业资格考试', '1'],
+                ['李四', '110101199002022345', '培训证书', '数据分析专业培训', '2023-09-20', 
+                 '2025-09-19', '中国数据科学研究院', 'DAT20230920002', 
+                 '该证书持有者已完成数据分析专业培训课程', '2']
+            ];
+            
+            // 添加表头和示例数据
+            const data = [headers, ...examples];
+            
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // 设置列宽
+            ws['!cols'] = [
+                {wch: 10},  // 姓名
+                {wch: 20},  // 身份证号
+                {wch: 15},  // 证书类型
+                {wch: 20},  // 证书名称
+                {wch: 12},  // 发证日期
+                {wch: 12},  // 有效期至
+                {wch: 25},  // 发证机关
+                {wch: 18},  // 证书编号
+                {wch: 30},  // 证书说明
+                {wch: 10}   // 证书模板
+            ];
+            
+            // 添加工作表到工作簿
+            XLSX.utils.book_append_sheet(wb, ws, '证书模板');
+            
+            // 下载文件
+            XLSX.writeFile(wb, '证书导入模板.xlsx');
+        }
+        
+        // 处理文件上传
+        function handleFileUpload(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    // 读取Excel文件
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // 获取第一个工作表
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    
+                    // 将工作表转换为JSON
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    if (jsonData.length < 2) {
+                        showNotification('导入失败', 'Excel文件中没有数据', 'error');
+                        return;
+                    }
+                    
+                    // 验证表头
+                    const headers = jsonData[0];
+                    const requiredHeaders = ['姓名', '身份证号', '证书类型', '证书名称', '发证日期', '有效期至', '发证机关', '证书编号'];
+                    
+                    const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+                    if (missingHeaders.length > 0) {
+                        showNotification('导入失败', `缺少必要的列：${missingHeaders.join(', ')}`, 'error');
+                        return;
+                    }
+                    
+                    // 显示预览
+                    showImportPreview(jsonData);
+                    
+                    // 保存解析后的数据
+                    window.importData = jsonData;
+                    
+                    // 启用确认导入按钮
+                    document.getElementById('confirmImportBtn').disabled = false;
+                    
+                } catch (error) {
+                    console.error('Error parsing Excel file:', error);
+                    showNotification('导入失败', '无法解析Excel文件，请检查文件格式', 'error');
+                }
+            };
+            
+            reader.onerror = function() {
+                showNotification('导入失败', '读取文件时发生错误', 'error');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // 显示导入预览
+        function showImportPreview(data) {
+            const previewTable = document.getElementById('previewTable');
+            const importPreview = document.getElementById('importPreview');
+            
+            // 清空表格
+            previewTable.innerHTML = '';
+            
+            // 创建表头
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            headerRow.className = 'bg-gray-50';
+            
+            data[0].forEach(header => {
+                const th = document.createElement('th');
+                th.className = 'px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            previewTable.appendChild(thead);
+            
+            // 创建表体
+            const tbody = document.createElement('tbody');
+            tbody.className = 'bg-white divide-y divide-gray-200';
+            
+            // 显示前5行数据作为预览
+            const previewData = data.slice(1, Math.min(6, data.length));
+            
+            previewData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.className = 'px-4 py-2 whitespace-nowrap text-sm text-gray-700';
+                    td.textContent = cell || '';
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+            
+            previewTable.appendChild(tbody);
+            
+            // 如果数据超过5行，显示提示
+            if (data.length > 6) {
+                const rowCountInfo = document.createElement('p');
+                rowCountInfo.className = 'text-sm text-gray-500 mt-2 text-center';
+                rowCountInfo.textContent = `显示前5行，共${data.length - 1}条数据`;
+                importPreview.appendChild(rowCountInfo);
+            }
+            
+            // 显示预览区域
+            importPreview.classList.remove('hidden');
+        }
+        
+        // 处理导入确认
+        function handleImportConfirm() {
+            if (!window.importData) {
+                showNotification('导入失败', '没有可导入的数据', 'error');
+                return;
+            }
+            
+            const data = window.importData;
+            const headers = data[0];
+            
+            // 获取列索引
+            const nameIndex = headers.indexOf('姓名');
+            const idNumberIndex = headers.indexOf('身份证号');
+            const typeIndex = headers.indexOf('证书类型');
+            const titleIndex = headers.indexOf('证书名称');
+            const issueDateIndex = headers.indexOf('发证日期');
+            const validUntilIndex = headers.indexOf('有效期至');
+            const issuingAuthorityIndex = headers.indexOf('发证机关');
+            const certificateNumberIndex = headers.indexOf('证书编号');
+            const descriptionIndex = headers.indexOf('证书说明');
+            const templateIndex = headers.indexOf('证书模板');
+            
+            let successCount = 0;
+            let updateCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            // 处理每一行数据
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                
+                // 跳过空行
+                if (!row[nameIndex] || !row[idNumberIndex] || !row[certificateNumberIndex]) {
+                    continue;
+                }
+                
+                try {
+                    // 准备证书数据
+                    const certificateData = {
+                        name: row[nameIndex].toString().trim(),
+                        idNumber: row[idNumberIndex].toString().trim(),
+                        type: row[typeIndex] ? row[typeIndex].toString().trim() : '',
+                        title: row[titleIndex] ? row[titleIndex].toString().trim() : '',
+                        issueDate: row[issueDateIndex] ? formatDateForStorage(row[issueDateIndex]) : '',
+                        validUntil: row[validUntilIndex] && row[validUntilIndex].toString().trim() !== '永久有效' 
+                            ? formatDateForStorage(row[validUntilIndex]) 
+                            : '永久有效',
+                        issuingAuthority: row[issuingAuthorityIndex] ? row[issuingAuthorityIndex].toString().trim() : '',
+                        certificateNumber: row[certificateNumberIndex].toString().trim(),
+                        description: row[descriptionIndex] ? row[descriptionIndex].toString().trim() : '',
+                        verificationCode: generateVerificationCode()
+                    };
+                    
+                    // 根据模板索引设置证书模板
+                    const templateIndexValue = row[templateIndex] ? parseInt(row[templateIndex]) : 1;
+                    switch (templateIndexValue) {
+                        case 2:
+                            certificateData.imageUrl = "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1905755140538105862~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=EZwrQ1q82WfqNeYGFpWbb%2BEd0C8%3D";
+                            break;
+                        case 3:
+                            certificateData.imageUrl = "https://p3-doubao-search-sign.byteimg.com/labis/c784c074bf7db0f49eadcd00f5d4f7c8~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=3xh3Y9piejAlYZVV0ZlvaNP022Q%3D";
+                            break;
+                        default:
+                            certificateData.imageUrl = "https://p11-doubao-search-sign.byteimg.com/tos-cn-i-xv4ileqgde/9f22e778402b46229e344b8051971f3a~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=GiQZbFSwW90wVQroe%2BFqWe1%2BFqWe1%2B3Js%3D";
+                    }
+                    
+                    // 检查是否已存在相同证书编号的证书
+                    const existingIndex = certificates.findIndex(cert => cert.certificateNumber === certificateData.certificateNumber);
+                    
+                    if (existingIndex !== -1) {
+                        // 更新现有证书
+                        certificates[existingIndex] = {
+                            ...certificates[existingIndex],
+                            ...certificateData
+                        };
+                        updateCount++;
+                    } else {
+                        // 添加新证书
+                        certificateData.id = generateId();
+                        certificates.push(certificateData);
+                        successCount++;
+                    }
+                    
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`第${i + 1}行: ${error.message}`);
+                    console.error(`Error processing row ${i + 1}:`, error);
+                }
+            }
+            
+            // 保存证书数据
+            saveCertificates();
+            
+            // 重新渲染证书列表
+            renderCertificates();
+            
+            // 关闭导入模态框
+            document.getElementById('importModal').classList.add('hidden');
+            
+            // 显示导入结果
+            let message = `成功导入 ${successCount} 条证书，更新 ${updateCount} 条证书`;
+            if (errorCount > 0) {
+                message += `，失败 ${errorCount} 条证书`;
+                console.error('Import errors:', errors);
+            }
+            
+            showNotification('导入完成', message, errorCount > 0 ? 'warning' : 'success');
+        }
+        
+        // 格式化日期为存储格式
+        function formatDateForStorage(dateValue) {
+            if (!dateValue) return '';
+            
+            // 如果是日期对象，直接格式化
+            if (dateValue instanceof Date) {
+                return dateValue.toISOString().split('T')[0];
+            }
+            
+            // 如果是数字（Excel日期序列号），转换为日期
+            if (typeof dateValue === 'number') {
+                const date = XLSX.SSF.to_date(dateValue);
+                return date.toISOString().split('T')[0];
+            }
+            
+            // 如果是字符串，尝试解析
+            if (typeof dateValue === 'string') {
+                // 尝试不同的日期格式
+                const formats = [
+                    /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/,  // YYYY-MM-DD 或 YYYY/MM/DD
+                    /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/   // MM-DD-YYYY 或 MM/DD/YYYY
+                ];
+                
+                for (const format of formats) {
+                    const match = dateValue.match(format);
+                    if (match) {
+                        let year, month, day;
+                        
+                        if (format === formats[0]) {
+                            // YYYY-MM-DD
+                            [, year, month, day] = match;
+                        } else {
+                            // MM-DD-YYYY
+                            [, month, day, year] = match;
+                        }
+                        
+                        // 确保月份和日期是两位数
+                        month = month.padStart(2, '0');
+                        day = day.padStart(2, '0');
+                        
+                        return `${year}-${month}-${day}`;
+                    }
+                }
+            }
+            
+            // 如果无法解析，返回原始值
+            return dateValue.toString().trim();
+        }
+        
+        // 处理图片上传
+        function handleImageUpload(file) {
+            // 检查文件类型
+            if (!file.type.match('image.*')) {
+                showNotification('上传失败', '请选择图片文件', 'error');
+                return;
+            }
+            
+            // 检查文件大小（限制为5MB）
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('上传失败', '图片大小不能超过5MB', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    // 显示图片预览
+                    const previewImage = document.getElementById('previewImage');
+                    const customImagePreview = document.getElementById('customImagePreview');
+                    
+                    previewImage.src = e.target.result;
+                    customImagePreview.classList.remove('hidden');
+                    
+                    // 创建一个隐藏的输入字段来存储Base64图片数据
+                    let imageInput = document.querySelector('input[name="customImageUrl"]');
+                    if (!imageInput) {
+                        imageInput = document.createElement('input');
+                        imageInput.type = 'hidden';
+                        imageInput.name = 'customImageUrl';
+                        document.getElementById('certificateForm').appendChild(imageInput);
+                    }
+                    imageInput.value = e.target.result;
+                    
+                    // 取消选中所有模板选项
+                    document.querySelectorAll('input[name="imageUrl"]').forEach(radio => {
+                        radio.checked = false;
+                    });
+                    
+                } catch (error) {
+                    console.error('Error processing image:', error);
+                    showNotification('上传失败', '无法处理图片，请重试', 'error');
+                }
+            };
+            
+            reader.onerror = function() {
+                showNotification('上传失败', '读取图片时发生错误', 'error');
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // 批量导出证书
+        function exportCertificates() {
+            if (certificates.length === 0) {
+                showNotification('导出失败', '没有可导出的证书数据', 'warning');
+                return;
+            }
+            
+            // 准备导出数据
+            const exportData = [
+                ['姓名', '身份证号', '证书类型', '证书名称', '发证日期', '有效期至', '发证机关', '证书编号', '验证码', '证书说明']
+            ];
+            
+            certificates.forEach(cert => {
+                exportData.push([
+                    cert.name,
+                    cert.idNumber,
+                    cert.type,
+                    cert.title,
+                    cert.issueDate,
+                    cert.validUntil,
+                    cert.issuingAuthority,
+                    cert.certificateNumber,
+                    cert.verificationCode,
+                    cert.description || ''
+                ]);
+            });
+            
+            // 创建工作簿和工作表
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '证书数据');
+            
+            // 设置列宽
+            ws['!cols'] = [
+                {wch: 10},  // 姓名
+                {wch: 20},  // 身份证号
+                {wch: 15},  // 证书类型
+                {wch: 20},  // 证书名称
+                {wch: 12},  // 发证日期
+                {wch: 12},  // 有效期至
+                {wch: 25},  // 发证机关
+                {wch: 18},  // 证书编号
+                {wch: 15},  // 验证码
+                {wch: 30}   // 证书说明
+            ];
+            
+            // 生成文件名（包含当前日期）
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            const fileName = `证书数据_${dateStr}.xlsx`;
+            
+            // 下载文件
+            XLSX.writeFile(wb, fileName);
+            
+            showNotification('导出成功', `已导出 ${certificates.length} 条证书数据`, 'success');
+        }
+
+        // 格式化日期
+        function formatDate(dateString) {
+            if (dateString === '永久有效') return dateString;
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-CN');
+        }
+
+        // 获取证书状态
+        function getCertificateStatus(certificate) {
+            if (certificate.validUntil === '永久有效') {
+                return { text: '永久有效', class: 'badge-green' };
+            }
+            
+            const today = new Date();
+            const expiryDate = new Date(certificate.validUntil);
+            const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry < 0) {
+                return { text: '已过期', class: 'badge-red' };
+            } else if (daysUntilExpiry <= 30) {
+                return { text: `即将过期 (${daysUntilExpiry}天)`, class: 'badge-yellow' };
+            } else {
+                return { text: '有效', class: 'badge-blue' };
+            }
+        }
+
+        // 更新统计数据
+        function updateStatistics() {
+            const totalCertificates = certificates.length;
+            const today = new Date();
+            
+            let validCertificates = 0;
+            let expiringCertificates = 0;
+            
+            certificates.forEach(cert => {
+                if (cert.validUntil === '永久有效') {
+                    validCertificates++;
+                } else {
+                    const expiryDate = new Date(cert.validUntil);
+                    const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysUntilExpiry > 0) {
+                        validCertificates++;
+                        
+                        if (daysUntilExpiry <= 30) {
+                            expiringCertificates++;
+                        }
+                    }
+                }
+            });
+            
+            document.getElementById('totalCertificates').textContent = totalCertificates;
+            document.getElementById('validCertificates').textContent = validCertificates;
+            document.getElementById('expiringCertificates').textContent = expiringCertificates;
+        }
+
+        // 渲染证书列表
+        function renderCertificates() {
+            const tableBody = document.getElementById('certificateTableBody');
+            tableBody.innerHTML = '';
+            
+            certificates.forEach(cert => {
+                const status = getCertificateStatus(cert);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">${cert.certificateNumber}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${cert.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${cert.type}</td>
+                    <td class="px-6 py-4">${cert.title}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${formatDate(cert.issueDate)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${formatDate(cert.validUntil)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="badge ${status.class}">${status.text}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-blue-600 hover:text-blue-900 mr-3 edit-btn" data-id="${cert.id}">
+                            <i class="fa fa-edit"></i> 编辑
+                        </button>
+                        <button class="text-red-600 hover:text-red-900 delete-btn" data-id="${cert.id}">
+                            <i class="fa fa-trash"></i> 删除
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // 添加编辑和删除按钮事件
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', handleEditCertificate);
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', handleDeleteCertificate);
+            });
+            
+            updateStatistics();
+        }
+
+        // 显示通知
+        function showNotification(title, message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationTitle = document.getElementById('notificationTitle');
+            const notificationMessage = document.getElementById('notificationMessage');
+            const notificationIcon = document.getElementById('notificationIcon');
+            
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            
+            // 设置图标和颜色
+            if (type === 'success') {
+                notificationIcon.innerHTML = '<i class="fa fa-check text-white"></i>';
+                notificationIcon.className = 'flex-shrink-0 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center mr-3';
+            } else if (type === 'error') {
+                notificationIcon.innerHTML = '<i class="fa fa-times text-white"></i>';
+                notificationIcon.className = 'flex-shrink-0 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center mr-3';
+            } else if (type === 'warning') {
+                notificationIcon.innerHTML = '<i class="fa fa-exclamation text-white"></i>';
+                notificationIcon.className = 'flex-shrink-0 w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center mr-3';
+            } else if (type === 'info') {
+                notificationIcon.innerHTML = '<i class="fa fa-info text-white"></i>';
+                notificationIcon.className = 'flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center mr-3';
+            }
+            
+            // 显示通知
+            notification.classList.remove('translate-x-full');
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        // 处理添加证书
+        function handleAddCertificate() {
+            const modal = document.getElementById('certificateModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const certificateForm = document.getElementById('certificateForm');
+            
+            modalTitle.textContent = '添加证书';
+            certificateForm.reset();
+            document.getElementById('permanentValid').checked = false;
+            document.getElementById('certValidUntil').disabled = false;
+            
+            // 清空表单中的隐藏字段
+            certificateForm.querySelector('input[name="id"]')?.remove();
+            
+            modal.classList.remove('hidden');
+        }
+
+        // 处理编辑证书
+        function handleEditCertificate(e) {
+            const id = e.currentTarget.getAttribute('data-id');
+            const certificate = certificates.find(cert => cert.id == id);
+            
+            if (!certificate) return;
+            
+            const modal = document.getElementById('certificateModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const certificateForm = document.getElementById('certificateForm');
+            
+            modalTitle.textContent = '编辑证书';
+            
+            // 填充表单数据
+            document.getElementById('certName').value = certificate.name;
+            document.getElementById('certIdNumber').value = certificate.idNumber;
+            document.getElementById('certType').value = certificate.type;
+            document.getElementById('certTitle').value = certificate.title;
+            document.getElementById('certIssueDate').value = certificate.issueDate;
+            
+            if (certificate.validUntil === '永久有效') {
+                document.getElementById('certValidUntil').value = '';
+                document.getElementById('certValidUntil').disabled = true;
+                document.getElementById('permanentValid').checked = true;
+            } else {
+                document.getElementById('certValidUntil').value = certificate.validUntil;
+                document.getElementById('certValidUntil').disabled = false;
+                document.getElementById('permanentValid').checked = false;
+            }
+            
+            document.getElementById('certIssuingAuthority').value = certificate.issuingAuthority;
+            document.getElementById('certCertificateNumber').value = certificate.certificateNumber;
+            document.getElementById('certDescription').value = certificate.description || '';
+            
+            // 选中对应的证书模板
+            document.querySelectorAll('input[name="imageUrl"]').forEach(radio => {
+                if (radio.value === certificate.imageUrl) {
+                    radio.checked = true;
+                }
+            });
+            
+            // 添加隐藏字段保存证书ID
+            let idInput = certificateForm.querySelector('input[name="id"]');
+            if (!idInput) {
+                idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'id';
+                certificateForm.appendChild(idInput);
+            }
+            idInput.value = certificate.id;
+            
+            modal.classList.remove('hidden');
+        }
+
+        // 处理删除证书
+        function handleDeleteCertificate(e) {
+            const id = e.currentTarget.getAttribute('data-id');
+            const certificate = certificates.find(cert => cert.id == id);
+            
+            if (!certificate) return;
+            
+            const deleteModal = document.getElementById('deleteModal');
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            
+            // 设置确认删除按钮的事件
+            confirmDeleteBtn.onclick = () => {
+                certificates = certificates.filter(cert => cert.id != id);
+                saveCertificates();
+                renderCertificates();
+                deleteModal.classList.add('hidden');
+                showNotification('删除成功', `证书 "${certificate.title}" 已成功删除`);
+            };
+            
+            deleteModal.classList.remove('hidden');
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查登录状态
+            if (localStorage.getItem('adminLoggedIn') !== 'true') {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // 渲染证书列表
+            renderCertificates();
+            
+            // 侧边栏切换
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                const sidebar = document.getElementById('sidebar');
+                sidebar.classList.toggle('hidden');
+            });
+            
+            // 用户菜单切换
+            document.getElementById('userMenuBtn').addEventListener('click', function() {
+                const userMenu = document.getElementById('userMenu');
+                userMenu.classList.toggle('hidden');
+            });
+            
+            // 点击其他地方关闭用户菜单
+            document.addEventListener('click', function(e) {
+                const userMenu = document.getElementById('userMenu');
+                const userMenuBtn = document.getElementById('userMenuBtn');
+                
+                if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
+                    userMenu.classList.add('hidden');
+                }
+            });
+            
+            // 退出登录
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('adminLoggedIn');
+                window.location.href = 'login.html';
+            });
+            
+            // 添加证书按钮
+            document.getElementById('addCertificateBtn').addEventListener('click', handleAddCertificate);
+            
+            // 批量导入按钮
+            document.getElementById('importCertificatesBtn').addEventListener('click', function() {
+                document.getElementById('importModal').classList.remove('hidden');
+                document.getElementById('importPreview').classList.add('hidden');
+                document.getElementById('confirmImportBtn').disabled = true;
+                document.getElementById('fileInput').value = '';
+                window.importData = null;
+            });
+            
+            // 批量导出按钮
+            document.getElementById('exportCertificatesBtn').addEventListener('click', exportCertificates);
+            
+            // 下载模板按钮
+            document.getElementById('downloadTemplateBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                downloadTemplate();
+            });
+            
+            // 关闭导入模态框按钮
+            document.getElementById('closeImportModalBtn').addEventListener('click', function() {
+                document.getElementById('importModal').classList.add('hidden');
+            });
+            
+            document.getElementById('cancelImportBtn').addEventListener('click', function() {
+                document.getElementById('importModal').classList.add('hidden');
+            });
+            
+            // 文件输入变化事件
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    handleFileUpload(file);
+                }
+            });
+            
+            // 证书图片上传按钮点击事件
+            document.getElementById('uploadImageBtn').addEventListener('click', function() {
+                document.getElementById('certImageUpload').click();
+            });
+            
+            // 证书图片上传变化事件
+            document.getElementById('certImageUpload').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    handleImageUpload(file);
+                }
+            });
+            
+            // 移除自定义图片按钮点击事件
+            document.getElementById('removeCustomImageBtn').addEventListener('click', function() {
+                document.getElementById('customImagePreview').classList.add('hidden');
+                document.getElementById('certImageUpload').value = '';
+                // 重置为使用默认模板
+                document.querySelector('input[name="imageUrl"]').checked = true;
+            });
+            
+            // 确认导入按钮
+            document.getElementById('confirmImportBtn').addEventListener('click', handleImportConfirm);
+            
+            // 关闭模态框按钮
+            document.getElementById('closeModalBtn').addEventListener('click', function() {
+                document.getElementById('certificateModal').classList.add('hidden');
+            });
+            
+            document.getElementById('cancelBtn').addEventListener('click', function() {
+                document.getElementById('certificateModal').classList.add('hidden');
+            });
+            
+            // 关闭删除模态框按钮
+            document.getElementById('cancelDeleteBtn').addEventListener('click', function() {
+                document.getElementById('deleteModal').classList.add('hidden');
+            });
+            
+            // 永久有效复选框
+            document.getElementById('permanentValid').addEventListener('change', function() {
+                document.getElementById('certValidUntil').disabled = this.checked;
+            });
+            
+            // 证书表单提交
+            document.getElementById('certificateForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const certificateData = {};
+                
+                formData.forEach((value, key) => {
+                    certificateData[key] = value;
+                });
+                
+                // 处理永久有效
+                if (document.getElementById('permanentValid').checked) {
+                    certificateData.validUntil = '永久有效';
+                }
+                
+                // 处理自定义图片
+                const customImageUrl = document.querySelector('input[name="customImageUrl"]')?.value;
+                if (customImageUrl) {
+                    certificateData.imageUrl = customImageUrl;
+                } else {
+                    // 如果没有自定义图片，使用选中的模板
+                    const selectedTemplate = document.querySelector('input[name="imageUrl"]:checked');
+                    if (selectedTemplate) {
+                        certificateData.imageUrl = selectedTemplate.value;
+                    }
+                }
+                
+                // 检查是添加还是编辑
+                if (certificateData.id) {
+                    // 编辑现有证书
+                    const index = certificates.findIndex(cert => cert.id == certificateData.id);
+                    if (index !== -1) {
+                        certificates[index] = { ...certificates[index], ...certificateData };
+                        saveCertificates();
+                        renderCertificates();
+                        document.getElementById('certificateModal').classList.add('hidden');
+                        showNotification('更新成功', '证书信息已成功更新');
+                    }
+                } else {
+                    // 添加新证书
+                    const newCertificate = {
+                        id: generateId(),
+                        ...certificateData,
+                        verificationCode: generateVerificationCode()
+                    };
+                    
+                    certificates.push(newCertificate);
+                    saveCertificates();
+                    renderCertificates();
+                    document.getElementById('certificateModal').classList.add('hidden');
+                    showNotification('添加成功', '新证书已成功添加');
+                }
+            });
+            
+            // 关闭通知按钮
+            document.getElementById('closeNotificationBtn').addEventListener('click', function() {
+                document.getElementById('notification').classList.add('translate-x-full');
+            });
+            
+            // 搜索功能
+            document.getElementById('searchInput').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#certificateTableBody tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

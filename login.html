@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>证书管理系统 - 登录</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af',
+                        secondary: '#3b82f6',
+                        accent: '#60a5fa',
+                        light: '#dbeafe',
+                        dark: '#1e3a8a'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .gradient-bg {
+                background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            }
+            .card-shadow {
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+            .input-focus {
+                @apply focus:ring-2 focus:ring-secondary focus:border-transparent;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-xl p-8 card-shadow">
+            <div class="text-center mb-8">
+                <div class="flex justify-center mb-4">
+                    <div class="w-16 h-16 rounded-full gradient-bg flex items-center justify-center">
+                        <i class="fa fa-lock text-white text-2xl"></i>
+                    </div>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">证书管理系统</h1>
+                <p class="text-gray-600 mt-2">请登录以访问管理后台</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label for="username" class="block text-gray-700 font-medium mb-2">用户名</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                            <i class="fa fa-user"></i>
+                        </span>
+                        <input type="text" id="username" name="username" placeholder="请输入用户名" 
+                            class="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg input-focus" required>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-gray-700 font-medium mb-2">密码</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                            <i class="fa fa-key"></i>
+                        </span>
+                        <input type="password" id="password" name="password" placeholder="请输入密码" 
+                            class="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg input-focus" required>
+                        <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">
+                            <i class="fa fa-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember" name="remember" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                        <label for="remember" class="ml-2 block text-gray-700">记住我</label>
+                    </div>
+                    <a href="#" class="text-primary hover:text-dark transition-colors">忘记密码?</a>
+                </div>
+                
+                <div>
+                    <button type="submit" class="w-full bg-primary hover:bg-dark text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300">
+                        登录
+                    </button>
+                </div>
+            </form>
+            
+            <div id="loginError" class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg hidden">
+                <i class="fa fa-exclamation-circle mr-2"></i>
+                <span id="errorMessage">用户名或密码错误，请重试</span>
+            </div>
+        </div>
+        
+        <div class="text-center mt-6 text-gray-600 text-sm">
+            <p>&copy; 2025 证书管理系统 版权所有</p>
+        </div>
+    </div>
+
+    <script>
+        // 管理员账户信息（实际应用中应存储在服务器数据库中）
+        const adminCredentials = {
+            username: "admin",
+            password: "admin123"
+        };
+
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        // 切换密码可见性
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // 切换图标
+            this.querySelector('i').classList.toggle('fa-eye');
+            this.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+
+        // 登录表单提交
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            // 验证用户名和密码
+            if (username === adminCredentials.username && password === adminCredentials.password) {
+                // 登录成功，保存登录状态并跳转到管理页面
+                localStorage.setItem('adminLoggedIn', 'true');
+                window.location.href = 'dashboard.html';
+            } else {
+                // 登录失败，显示错误信息
+                loginError.classList.remove('hidden');
+                
+                // 3秒后自动隐藏错误信息
+                setTimeout(() => {
+                    loginError.classList.add('hidden');
+                }, 3000);
+            }
+        });
+
+        // 检查是否已登录
+        if (localStorage.getItem('adminLoggedIn') === 'true') {
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>
