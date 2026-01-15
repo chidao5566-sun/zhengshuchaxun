@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电子证书查询系统</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- QR Code Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas for capturing certificate -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af',
+                        secondary: '#3b82f6',
+                        accent: '#60a5fa',
+                        light: '#dbeafe',
+                        dark: '#1e3a8a'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .gradient-bg {
+                background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            }
+            .glass-effect {
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+            }
+            .input-focus {
+                @apply focus:ring-2 focus:ring-secondary focus:border-transparent;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-dark text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-opacity-50;
+            }
+            .btn-secondary {
+                @apply bg-white hover:bg-gray-100 text-primary font-bold py-3 px-6 rounded-lg border border-primary transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-opacity-50;
+            }
+            .card {
+                @apply bg-white rounded-xl shadow-card p-6 transition-all duration-300 hover:shadow-card-hover;
+            }
+            .certificate-frame {
+                @apply border-8 border-gray-800 rounded-lg overflow-hidden bg-white p-4 relative;
+            }
+            .certificate-seal {
+                @apply absolute bottom-8 right-8 w-24 h-24 border-4 border-red-600 rounded-full flex items-center justify-center rotate-12 opacity-80;
+            }
+            .certificate-qr {
+                @apply absolute bottom-8 left-8 w-24 h-24 bg-white p-1 border border-gray-300;
+            }
+            .animate-fadeIn {
+                animation: fadeIn 1s ease-in-out;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-pulse {
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header Section -->
+    <header class="gradient-bg text-white py-6 shadow-md">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <i class="fa fa-certificate text-4xl mr-3 text-yellow-300"></i>
+                    <h1 class="text-2xl md:text-3xl font-bold">电子证书查询系统</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#" class="text-white hover:text-yellow-300 transition-colors">
+                        <i class="fa fa-question-circle mr-1"></i> 使用帮助
+                    </a>
+                    <a href="#" class="text-white hover:text-yellow-300 transition-colors">
+                        <i class="fa fa-phone mr-1"></i> 联系我们
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Section -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Search Form Section -->
+        <section class="max-w-3xl mx-auto mb-12">
+            <div class="card">
+                <h2 class="text-2xl font-bold text-center mb-6 text-primary">证书查询</h2>
+                <form id="searchForm" class="space-y-6">
+                    <div>
+                        <label for="name" class="block text-gray-700 font-medium mb-2">姓名</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                <i class="fa fa-user"></i>
+                            </span>
+                            <input type="text" id="name" name="name" placeholder="请输入您的姓名" 
+                                class="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg input-focus" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="idNumber" class="block text-gray-700 font-medium mb-2">身份证号</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                <i class="fa fa-id-card"></i>
+                            </span>
+                            <input type="text" id="idNumber" name="idNumber" placeholder="请输入您的身份证号" 
+                                class="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg input-focus" required>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn-primary w-full md:w-auto">
+                            <i class="fa fa-search mr-2"></i> 查询证书
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Verification Section -->
+        <section class="max-w-3xl mx-auto mb-12 hidden" id="verificationSection">
+            <div class="card">
+                <h2 class="text-2xl font-bold text-center mb-6 text-primary">证书验证</h2>
+                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="flex-1">
+                        <label for="verificationCode" class="block text-gray-700 font-medium mb-2">验证码</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                <i class="fa fa-shield"></i>
+                            </span>
+                            <input type="text" id="verificationCode" name="verificationCode" placeholder="请输入证书上的验证码" 
+                                class="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg input-focus">
+                        </div>
+                    </div>
+                    <div class="flex items-end">
+                        <button id="verifyBtn" class="btn-secondary w-full md:w-auto">
+                            <i class="fa fa-check-circle mr-2"></i> 验证证书
+                        </button>
+                    </div>
+                </div>
+                <div id="verificationResult" class="mt-4 p-4 rounded-lg text-center hidden"></div>
+            </div>
+        </section>
+
+        <!-- Certificate Result Section -->
+        <section class="max-w-4xl mx-auto hidden" id="resultSection">
+            <div class="card">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-primary">查询结果</h2>
+                    <button id="resetBtn" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fa fa-refresh mr-1"></i> 重新查询
+                    </button>
+                </div>
+                
+                <!-- Certificate Display Area -->
+                <div class="certificate-container mb-6 overflow-hidden">
+                    <div id="certificate" class="certificate-frame mx-auto max-w-2xl" style="height: 500px;">
+                        <!-- Certificate content will be dynamically generated here -->
+                    </div>
+                </div>
+                
+                <!-- Certificate Details -->
+                <div id="certificateDetails" class="bg-gray-50 p-4 rounded-lg mb-6">
+                    <!-- Details will be dynamically generated here -->
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-4">
+                    <button id="downloadPdfBtn" class="btn-primary">
+                        <i class="fa fa-download mr-2"></i> 下载PDF证书
+                    </button>
+                    <button id="downloadImageBtn" class="btn-secondary">
+                        <i class="fa fa-file-image-o mr-2"></i> 下载图片证书
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- No Result Section -->
+        <section class="max-w-3xl mx-auto hidden" id="noResultSection">
+            <div class="card text-center">
+                <i class="fa fa-exclamation-circle text-5xl text-red-500 mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">未找到证书</h2>
+                <p class="text-gray-600 mb-6">根据您提供的信息，我们未能找到相关证书。请检查您的输入信息是否正确。</p>
+                <button id="tryAgainBtn" class="btn-primary">
+                    <i class="fa fa-refresh mr-2"></i> 重新查询
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer Section -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-bold mb-4">关于我们</h3>
+                    <p class="text-gray-400">电子证书查询系统致力于提供安全、便捷的证书查询和验证服务，确保证书的真实性和有效性。</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">快速链接</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">首页</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">使用帮助</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">常见问题</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">联系我们</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">联系方式</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><i class="fa fa-envelope mr-2"></i> support@certificate-system.com</li>
+                        <li><i class="fa fa-phone mr-2"></i> 400-123-4567</li>
+                        <li><i class="fa fa-map-marker mr-2"></i> 北京市海淀区中关村大街1号</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-500">
+                <p>&copy; 2025 电子证书查询系统 版权所有</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg flex items-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+            <span class="text-gray-700">正在处理您的请求...</span>
+        </div>
+    </div>
+
+    <script>
+        // 证书数据库，初始为空
+        let certificateDatabase = [];
+        
+        // 从localStorage加载证书数据
+        function loadCertificateDatabase() {
+            const storedData = localStorage.getItem('certificateDatabase');
+            if (storedData) {
+                certificateDatabase = JSON.parse(storedData);
+                console.log('已加载证书数据:', certificateDatabase.length, '条记录');
+            } else {
+                // 如果没有存储的数据，使用默认数据
+                certificateDatabase = [
+                    {
+                        id: 1,
+                        name: "张三",
+                        idNumber: "110101199001011234",
+                        type: "职业资格证书",
+                        title: "高级软件工程师",
+                        issueDate: "2023-06-15",
+                        validUntil: "2028-06-14",
+                        issuingAuthority: "国家人力资源和社会保障部",
+                        certificateNumber: "CSSE20230615001",
+                        verificationCode: "VC123456789",
+                        description: "该证书持有者已通过高级软件工程师职业资格考试，具备相应的专业技能和知识。",
+                        imageUrl: "https://p11-doubao-search-sign.byteimg.com/tos-cn-i-xv4ileqgde/9f22e778402b46229e344b8051971f3a~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=GiQZbFSwW90wVQroe%2BFqWe1%2BFqWe1%2B3Js%3D"
+                    },
+                    {
+                        id: 2,
+                        name: "李四",
+                        idNumber: "110101199002022345",
+                        type: "培训证书",
+                        title: "数据分析专业培训",
+                        issueDate: "2023-09-20",
+                        validUntil: "2025-09-19",
+                        issuingAuthority: "中国数据科学研究院",
+                        certificateNumber: "DAT20230920002",
+                        verificationCode: "VC987654321",
+                        description: "该证书持有者已完成数据分析专业培训课程，并通过了相关考核。",
+                        imageUrl: "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-be4g95zd3a/1905755140538105862~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=EZwrQ1q82WfqNeYGFpWbb%2BEd0C8%3D"
+                    },
+                    {
+                        id: 3,
+                        name: "王五",
+                        idNumber: "110101199003033456",
+                        type: "学历证书",
+                        title: "计算机科学与技术学士学位",
+                        issueDate: "2020-07-01",
+                        validUntil: "永久有效",
+                        issuingAuthority: "电子科技大学",
+                        certificateNumber: "BAC20200701003",
+                        verificationCode: "VC456789123",
+                        description: "该证书持有者已完成计算机科学与技术专业本科阶段学习，成绩合格，授予学士学位。",
+                        imageUrl: "https://p3-doubao-search-sign.byteimg.com/labis/c784c074bf7db0f49eadcd00f5d4f7c8~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1783994792&x-signature=3xh3Y9piejAlYZVV0ZlvaNP022Q%3D"
+                    }
+                ];
+                // 保存默认数据到localStorage
+                localStorage.setItem('certificateDatabase', JSON.stringify(certificateDatabase));
+                console.log('已创建默认证书数据:', certificateDatabase.length, '条记录');
+            }
+        }
+        
+        // 初始加载证书数据
+        loadCertificateDatabase();
+        
+        // 设置定时刷新数据，每30秒刷新一次
+        setInterval(function() {
+            loadCertificateDatabase();
+        }, 30000);
+
+        // DOM Elements
+        const searchForm = document.getElementById('searchForm');
+        const resultSection = document.getElementById('resultSection');
+        const noResultSection = document.getElementById('noResultSection');
+        const verificationSection = document.getElementById('verificationSection');
+        const certificateElement = document.getElementById('certificate');
+        const certificateDetails = document.getElementById('certificateDetails');
+        const resetBtn = document.getElementById('resetBtn');
+        const tryAgainBtn = document.getElementById('tryAgainBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        const downloadImageBtn = document.getElementById('downloadImageBtn');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const verificationResult = document.getElementById('verificationResult');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // 当前查询到的证书
+        let currentCertificate = null;
+
+        // 搜索表单提交事件
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 显示加载动画
+            loadingOverlay.classList.remove('hidden');
+            
+            // 获取表单数据
+            const name = document.getElementById('name').value.trim();
+            const idNumber = document.getElementById('idNumber').value.trim();
+            
+            // 表单验证
+            if (!name) {
+                showToast('请输入姓名', 'error');
+                loadingOverlay.classList.add('hidden');
+                return;
+            }
+            
+            if (!idNumber) {
+                showToast('请输入身份证号', 'error');
+                loadingOverlay.classList.add('hidden');
+                return;
+            }
+            
+            // 验证身份证号格式
+            const idCardRegex = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
+            if (!idCardRegex.test(idNumber)) {
+                showToast('请输入有效的身份证号码', 'error');
+                loadingOverlay.classList.add('hidden');
+                return;
+            }
+            
+            // 重新加载最新的证书数据，确保与后台同步
+            loadCertificateDatabase();
+            
+            // 模拟API请求延迟
+            setTimeout(() => {
+                // 在数据库中查找匹配的证书
+                const foundCertificate = certificateDatabase.find(cert => 
+                    cert.name === name && cert.idNumber === idNumber
+                );
+                
+                // 隐藏加载动画
+                loadingOverlay.classList.add('hidden');
+                
+                if (foundCertificate) {
+                    // 找到证书，显示结果
+                    currentCertificate = foundCertificate;
+                    displayCertificate(foundCertificate);
+                    resultSection.classList.remove('hidden');
+                    noResultSection.classList.add('hidden');
+                    verificationSection.classList.remove('hidden');
+                    
+                    // 滚动到结果区域
+                    resultSection.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // 显示成功提示
+                    showToast('查询成功', 'success');
+                } else {
+                    // 未找到证书
+                    resultSection.classList.add('hidden');
+                    noResultSection.classList.remove('hidden');
+                    verificationSection.classList.add('hidden');
+                    
+                    // 滚动到无结果区域
+                    noResultSection.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // 显示未找到提示
+                    showToast('未找到相关证书', 'info');
+                }
+            }, 1000);
+        });
+        
+        // 显示提示消息
+        function showToast(message, type = 'info') {
+            // 创建提示元素
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full';
+            
+            // 设置不同类型的样式
+            if (type === 'success') {
+                toast.classList.add('bg-green-500', 'text-white');
+                toast.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+            } else if (type === 'error') {
+                toast.classList.add('bg-red-500', 'text-white');
+                toast.innerHTML = `<i class="fa fa-times-circle mr-2"></i>${message}`;
+            } else if (type === 'warning') {
+                toast.classList.add('bg-yellow-500', 'text-white');
+                toast.innerHTML = `<i class="fa fa-exclamation-triangle mr-2"></i>${message}`;
+            } else {
+                toast.classList.add('bg-blue-500', 'text-white');
+                toast.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+            }
+            
+            // 添加到页面
+            document.body.appendChild(toast);
+            
+            // 显示提示
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+            
+            // 3秒后隐藏
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                // 动画结束后移除元素
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        // 显示证书
+        function displayCertificate(cert) {
+            // 创建证书内容
+            certificateElement.innerHTML = `
+                <div class="relative w-full h-full flex items-center justify-center">
+                    <img src="${cert.imageUrl}" alt="${cert.title}" class="w-full h-full object-contain">
+                    <div class="absolute inset-0 flex flex-col items-center justify-center p-8">
+                        <h3 class="text-3xl font-bold text-center mb-4">${cert.title}</h3>
+                        <p class="text-xl text-center mb-2">兹证明</p>
+                        <p class="text-2xl font-bold text-center mb-4">${cert.name}</p>
+                        <p class="text-lg text-center mb-6">已通过${cert.type}考核，成绩合格</p>
+                        <div class="flex justify-between w-full mt-8">
+                            <div>
+                                <p class="text-sm">证书编号: ${cert.certificateNumber}</p>
+                                <p class="text-sm">发证日期: ${cert.issueDate}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm">有效期至: ${cert.validUntil}</p>
+                                <p class="text-sm">发证机关: ${cert.issuingAuthority}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="certificate-qr" id="qrcodeContainer"></div>
+                    <div class="certificate-seal">
+                        <span class="text-red-600 font-bold text-center">
+                            <div class="text-xs">电子证书</div>
+                            <div class="text-lg">专用章</div>
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            // 添加证书查看动画效果
+            certificateElement.classList.add('animate-fadeIn');
+            setTimeout(() => {
+                certificateElement.classList.remove('animate-fadeIn');
+            }, 1000);
+            
+            // 生成二维码
+            setTimeout(() => {
+                const qrCodeContainer = document.getElementById('qrcodeContainer');
+                QRCode.toCanvas(qrCodeContainer, 
+                    `证书验证: ${cert.verificationCode} | 姓名: ${cert.name} | 证书编号: ${cert.certificateNumber}`, 
+                    { width: 80, margin: 1 }, 
+                    function (error) {
+                        if (error) console.error(error);
+                        console.log('QR code generated');
+                    }
+                );
+            }, 100);
+            
+            // 创建证书详情
+            certificateDetails.innerHTML = `
+                <h3 class="text-xl font-bold mb-4">证书信息</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p><span class="font-medium">证书类型:</span> ${cert.type}</p>
+                        <p><span class="font-medium">证书名称:</span> ${cert.title}</p>
+                        <p><span class="font-medium">持证人:</span> ${cert.name}</p>
+                        <p><span class="font-medium">身份证号:</span> ${maskIdNumber(cert.idNumber)}</p>
+                    </div>
+                    <div>
+                        <p><span class="font-medium">证书编号:</span> ${cert.certificateNumber}</p>
+                        <p><span class="font-medium">发证日期:</span> ${cert.issueDate}</p>
+                        <p><span class="font-medium">有效期至:</span> ${cert.validUntil}</p>
+                        <p><span class="font-medium">发证机关:</span> ${cert.issuingAuthority}</p>
+                        <p><span class="font-medium">验证码:</span> <span class="font-bold text-primary">${cert.verificationCode}</span></p>
+                    </div>
+                </div>
+                <p class="mt-4"><span class="font-medium">证书说明:</span> ${cert.description}</p>
+            `;
+        }
+
+        // 身份证号脱敏处理
+        function maskIdNumber(idNumber) {
+            if (!idNumber || idNumber.length < 10) return idNumber;
+            return idNumber.substring(0, 6) + '********' + idNumber.substring(idNumber.length - 4);
+        }
+
+        // 重置按钮点击事件
+        resetBtn.addEventListener('click', function() {
+            searchForm.reset();
+            resultSection.classList.add('hidden');
+            noResultSection.classList.add('hidden');
+            verificationSection.classList.add('hidden');
+            currentCertificate = null;
+            
+            // 滚动到搜索表单
+            searchForm.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // 重新查询按钮点击事件
+        tryAgainBtn.addEventListener('click', function() {
+            searchForm.reset();
+            resultSection.classList.add('hidden');
+            noResultSection.classList.add('hidden');
+            verificationSection.classList.add('hidden');
+            currentCertificate = null;
+            
+            // 滚动到搜索表单
+            searchForm.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // 下载PDF证书
+        downloadPdfBtn.addEventListener('click', function() {
+            if (!currentCertificate) return;
+            
+            // 显示加载动画
+            loadingOverlay.classList.remove('hidden');
+            
+            setTimeout(() => {
+                html2canvas(document.getElementById('certificate')).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jspdf.jsPDF({
+                        orientation: 'landscape',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
+                    
+                    const imgWidth = 297;
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    
+                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                    pdf.save(`${currentCertificate.name}_${currentCertificate.title}_证书.pdf`);
+                    
+                    // 隐藏加载动画
+                    loadingOverlay.classList.add('hidden');
+                });
+            }, 500);
+        });
+
+        // 下载图片证书
+        downloadImageBtn.addEventListener('click', function() {
+            if (!currentCertificate) return;
+            
+            // 显示加载动画
+            loadingOverlay.classList.remove('hidden');
+            
+            setTimeout(() => {
+                html2canvas(document.getElementById('certificate')).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `${currentCertificate.name}_${currentCertificate.title}_证书.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    // 隐藏加载动画
+                    loadingOverlay.classList.add('hidden');
+                });
+            }, 500);
+        });
+
+        // 验证证书
+        verifyBtn.addEventListener('click', function() {
+            const verificationCode = document.getElementById('verificationCode').value.trim();
+            
+            if (!verificationCode) {
+                verificationResult.innerHTML = '<p class="text-red-500">请输入验证码</p>';
+                verificationResult.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+                verificationResult.classList.add('bg-red-100', 'text-red-800');
+                return;
+            }
+            
+            // 模拟验证过程
+            verificationResult.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto mb-2"></div><p>正在验证...</p>';
+            verificationResult.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            
+            setTimeout(() => {
+                if (currentCertificate && verificationCode === currentCertificate.verificationCode) {
+                    verificationResult.innerHTML = '<i class="fa fa-check-circle text-green-500 mr-2"></i><span>证书验证通过，确认为真实有效证书。</span>';
+                    verificationResult.classList.remove('bg-red-100', 'text-red-800');
+                    verificationResult.classList.add('bg-green-100', 'text-green-800');
+                } else {
+                    verificationResult.innerHTML = '<i class="fa fa-times-circle text-red-500 mr-2"></i><span>验证码错误，证书验证失败。</span>';
+                    verificationResult.classList.remove('bg-green-100', 'text-green-800');
+                    verificationResult.classList.add('bg-red-100', 'text-red-800');
+                }
+            }, 1500);
+        });
+
+        // 添加表单输入验证
+        document.getElementById('idNumber').addEventListener('input', function(e) {
+            // 只允许输入数字和X/x
+            e.target.value = e.target.value.replace(/[^\dXx]/g, '');
+        });
+    </script>
+</body>
+</html>
